@@ -4,7 +4,890 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FaderDeck</title>
+    <link rel="icon" href="assets/favicon.png" type="image/png">
+    <style>
+        :root {
+            --primary-color: #00d4aa;
+            --bg-dark: #1a1a1a;
+            --bg-darker: #0f0f0f;
+            --text-light: #f5f5f5;
+            --text-gray: #a0a0a0;
+            --border-color: #2a2a2a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-darker);
+            color: var(--text-light);
+            overflow-x: hidden;
+        }
+
+        .intro-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-darker);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.8s ease;
+        }
+
+        .intro-overlay.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .intro-overlay video {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        .toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background-color: var(--bg-dark);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            z-index: 100;
+        }
+
+        .toolbar-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 600;
+            text-decoration: none;
+            color: var(--primary-color);
+        }
+
+        .toolbar-logo img {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+        }
+
+        .toolbar-nav {
+            display: flex;
+            gap: 30px;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .toolbar-nav a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 15px;
+            transition: color 0.3s;
+        }
+
+        .toolbar-nav a:hover {
+            color: var(--primary-color);
+        }
+
+        .toolbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .lang-selector {
+            padding: 6px 12px;
+            background-color: var(--bg-darker);
+            border: 1px solid var(--border-color);
+            color: var(--text-light);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .auth-btn {
+            padding: 8px 16px;
+            background-color: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .auth-btn:hover {
+            background-color: var(--primary-color);
+            color: var(--bg-dark);
+        }
+
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            padding: 10px 20px;
+            overflow-x: auto;
+            white-space: nowrap;
+            z-index: 90;
+            background: linear-gradient(var(--border-color),transparent);
+            transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .mobile-nav-scroll {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .mobile-nav.hidden {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+
+        .mobile-nav a {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: var(--bg-darker);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .mobile-nav a.active {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: var(--bg-dark);
+        }
+
+        .main-content {
+            margin-top: 60px;
+            padding: 80px 40px;
+            min-height: 100vh;
+        }
+
+        .hero-section {
+            position: relative;
+            min-height: 600px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 100px;
+            justify-content: space-between;
+            padding-right: 5%;
+        }
+
+        .hero-content {
+            max-width: 600px;
+            margin-left: 10%;
+            z-index: 10;
+        }
+
+        .faders-animation {
+            position: relative;
+            width: 675px;
+            height: 300px;
+            flex-shrink: 0;
+        }
+
+        .faders-bg {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-image: url("assets/faderanim1.png");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        .slider {
+            position: absolute;
+            width: 4%;
+            height: 24%;
+            background-image: url("assets/faderanim2.png");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            left: 0;
+            top: 5%;
+            transform: translateX(-50%);
+            animation: move 3s ease-in-out infinite;
+            animation-fill-mode: backwards;
+        }
+
+        @keyframes move {
+            0%   { top: 5%; }
+            50%  { top: 70%; }
+            100% { top: 5%; }
+        }
+
+        .slider.s1  { left: 5.2%; }
+        .slider.s2  { left: 14.1%; }
+        .slider.s3  { left: 23%; }
+        .slider.s4  { left: 31.9%; }
+        .slider.s5  { left: 40.8%; }
+        .slider.s6  { left: 49.7%; }
+        .slider.s7  { left: 58.6%; }
+        .slider.s8  { left: 67.4%; }
+        .slider.s9  { left: 76.3%; }
+        .slider.s10 { left: 85.2%; }
+        .slider.s11 { left: 94.1%; }
+
+        .hero-title {
+            font-size: 64px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            line-height: 1.1;
+        }
+
+        .hero-description {
+            font-size: 20px;
+            color: var(--text-gray);
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .download-btn {
+            padding: 14px 32px;
+            background-color: transparent;
+            color: var(--text-gray);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .github-btn {
+            width: 48px;
+            height: 48px;
+            background-color: transparent;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .github-btn:hover {
+            border-color: var(--primary-color);
+            background-color: rgba(0, 212, 170, 0.1);
+        }
+
+        .github-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--text-light);
+        }
+
+        .faq-section {
+            max-width: 800px;
+            margin: 0 auto 100px 10%;
+        }
+
+        .faq-title {
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 40px;
+        }
+
+        .faq-item {
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .faq-item:hover {
+            border-color: var(--primary-color);
+        }
+
+        .faq-question {
+            padding: 20px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .faq-question h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .faq-arrow {
+            font-size: 20px;
+            color: var(--primary-color);
+            transition: transform 0.3s;
+        }
+
+        .faq-arrow.active {
+            transform: rotate(-90deg);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+            padding: 0 25px;
+        }
+
+        .faq-answer.active {
+            max-height: 500px;
+            padding: 0 25px 20px 25px;
+        }
+
+        .faq-answer p {
+            color: var(--text-gray);
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        .footer {
+            max-width: 800px;
+            margin: 0 auto 60px 10%;
+            padding-top: 60px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .footer-content {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            color: var(--text-gray);
+            font-size: 15px;
+        }
+
+        .footer-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: opacity 0.3s;
+        }
+
+        .footer-link:hover {
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .toolbar {
+               padding: 0 20px;
+           }
+       
+           .toolbar-nav {
+               display: none;
+           }
+       
+           .mobile-nav {
+               display: block;
+           }
+       
+           .main-content {
+               margin-top: 125px;
+               padding: 40px 20px;
+           }
+
+            .hero-section {
+                flex-direction: column;
+                gap: 40px;
+                min-height: auto;
+                padding-right: 0;
+            }
+
+            .hero-content {
+                margin-left: 0;
+                max-width: 100%;
+            }
+            
+            @keyframes move {
+                0%   { top: 14%; }
+                50%  { top: 60%; }
+                100% { top: 14%; }
+            }
+
+
+            .hero-title {
+                font-size: 42px;
+            }
+
+            .hero-description {
+                font-size: 18px;
+            }
+
+            .button-group {
+                flex-direction: row;
+                align-items: center;
+                width: 100%;
+            }
+
+            .download-btn {
+                flex: 1;
+            }
+
+            .faders-animation {
+                width: 100%;
+                max-width: 500px;
+                height: 222px;
+            }
+
+            .faq-section,
+            .footer {
+                margin-left: 0;
+            }
+
+            .faq-title {
+                font-size: 32px;
+            }
+        }
+    </style>
 </head>
 <body>
-  hi
+    <div class="intro-overlay" id="introOverlay">
+        <video autoplay muted playsinline id="introVideo">
+            <source src="assets/intro.mp4" type="video/mp4">
+        </video>
+    </div>
+    <div class="toolbar">
+        <a class="toolbar-logo" href="https://gleknya.github.io/FaderDeck.github.io">
+            <div class="toolbar-logo">
+                <img src="assets/FaderDeckIcon256x256.png" alt="FaderDeck">
+                <span>FaderDeck</span>
+            </div>
+        </a>
+        <nav class="toolbar-nav">
+            <a href="#developers">Для разработчиков</a>
+            <a href="#news">Новости</a>
+            <a href="#plugins">Плагины</a>
+        </nav>
+        <div class="toolbar-actions">
+            <select class="lang-selector">
+                <option value="ru">RU</option>
+                <option value="en">EN</option>
+            </select>
+        <!--   <button class="auth-btn" onclick="goToAuth()">Войти</button>   auth button-->
+        </div>
+    </div>
+
+    <nav class="mobile-nav">
+        <div class="mobile-nav-scroll">
+            <a href="#developers">Для разработчиков</a>
+            <a href="#news">Новости</a>
+            <a href="#plugins">Плагины</a>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <section class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">FaderDeck</h1>
+                <p class="hero-description">
+                    Управляйте звуком приложений на пк вашем микшером с помощью нашего FaderDeck!
+                </p>
+                <div class="button-group">
+                    <button class="download-btn">в разработке</button>
+                    <button class="github-btn" onclick="window.open('https://github.com/gLeknya/FaderDeck', '_blank')">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="faders-animation" onclick="startRandomVariant()">
+                <div class="faders-bg">
+                    <div class="slider s1"></div>
+                    <div class="slider s2"></div>
+                    <div class="slider s3"></div>
+                    <div class="slider s4"></div>
+                    <div class="slider s5"></div>
+                    <div class="slider s6"></div>
+                    <div class="slider s7"></div>
+                    <div class="slider s8"></div>
+                    <div class="slider s9"></div>
+                    <div class="slider s10"></div>
+                    <div class="slider s11"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="faq-section" id="faq">
+            <h2 class="faq-title">FAQ</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <h3>Что такое FaderDeck?</h3>
+                    <span class="faq-arrow">&lt;</span>
+                </div>
+                <div class="faq-answer">
+                    <p>FaderDeck - это приложение для управления звуком отдельных приложений на вашем ПК через MIDI микшер. Вы можете подключить любой MIDI контроллер и назначить фейдеры для управления громкостью различных программ.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <h3>Какие MIDI устройства поддерживаются?</h3>
+                    <span class="faq-arrow">&lt;</span>
+                </div>
+                <div class="faq-answer">
+                    <p>FaderDeck поддерживает любые MIDI контроллеры, которые могут отправлять Control Change сообщения. Это включает популярные устройства от Behringer, Korg, Novation и многих других производителей.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <h3>Как начать использовать FaderDeck?</h3>
+                    <span class="faq-arrow">&lt;</span>
+                </div>
+                <div class="faq-answer">
+                    <p>Просто скачайте приложение, подключите ваш MIDI контроллер к ПК, выберите его в настройках FaderDeck и привяжите каналы микшера к нужным приложениям. Все интуитивно и просто!</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <h3>Это бесплатно?</h3>
+                    <span class="faq-arrow">&lt;</span>
+                </div>
+                <div class="faq-answer">
+                    <p>Да! FaderDeck является полностью бесплатным приложением с открытым исходным кодом. Вы можете использовать его без каких-либо ограничений.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <h3>Какие операционные системы поддерживаются?</h3>
+                    <span class="faq-arrow">&lt;</span>
+                </div>
+                <div class="faq-answer">
+                    <p>В настоящее время FaderDeck поддерживает Windows 10 и Windows 11. Поддержка других операционных систем планируется в будущих версиях.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <h3>Обязательна ли регистрация?</h3>
+                    <span class="faq-arrow">&lt;</span>
+                </div>
+                <div class="faq-answer">
+                    <p>Нет, регистрация не обязательна. Вы можете использовать FaderDeck без создания аккаунта, но в таком случае вы лишаете себя некоторых удобных функций, таких как синхронизация настроек между устройствами и облачное хранение профилей.</p>
+                </div>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <span>Разработано gLeknya</span>
+                <span>•</span>
+                <a href="https://t.me/gleknya" target="_blank" rel="noopener noreferrer" class="footer-link">Telegram</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const translations = {
+            ru: {
+                developers: 'Для разработчиков',
+                news: 'Новости',
+                plugins: 'Плагины',
+                //login: 'Войти',
+                title: 'FaderDeck',
+                description: 'Управляйте звуком приложений на пк вашем микшером с помощью нашего FaderDeck!',
+                download: 'в разработке',
+                faqTitle: 'FAQ',
+                faq1q: 'Что такое FaderDeck?',
+                faq1a: 'FaderDeck - это приложение для управления звуком отдельных приложений на вашем ПК через MIDI микшер. Вы можете подключить любой MIDI контроллер и назначить фейдеры для управления громкостью различных программ.',
+                faq2q: 'Какие MIDI устройства поддерживаются?',
+                faq2a: 'FaderDeck поддерживает любые MIDI контроллеры, которые могут отправлять Control Change сообщения. Это включает популярные устройства от Behringer, Korg, Novation и многих других производителей.',
+                faq3q: 'Как начать использовать FaderDeck?',
+                faq3a: 'Просто скачайте приложение, подключите ваш MIDI контроллер к ПК, выберите его в настройках FaderDeck и привяжите каналы микшера к нужным приложениям. Все интуитивно и просто!',
+                faq4q: 'Это бесплатно?',
+                faq4a: 'Да! FaderDeck является полностью бесплатным приложением с открытым исходным кодом. Вы можете использовать его без каких-либо ограничений.',
+                faq5q: 'Какие операционные системы поддерживаются?',
+                faq5a: 'В настоящее время FaderDeck поддерживает Windows 10 и Windows 11. Поддержка других операционных систем планируется в будущих версиях.',
+                faq6q: 'Обязательна ли регистрация?',
+                faq6a: 'Нет, регистрация не обязательна. Вы можете использовать FaderDeck без создания аккаунта, но в таком случае вы лишаете себя некоторых удобных функций, таких как синхронизация настроек между устройствами и облачное хранение профилей.',
+                devBy: 'Разработано gLeknya',
+                mobileAll: 'Все'
+            },
+            en: {
+                developers: 'For Developers',
+                news: 'News',
+                plugins: 'Plugins',
+                //login: 'Login',
+                title: 'FaderDeck',
+                description: 'Control your PC application volumes with your mixer using our FaderDeck!',
+                download: 'in development',
+                faqTitle: 'FAQ',
+                faq1q: 'What is FaderDeck?',
+                faq1a: 'FaderDeck is an application for controlling the volume of individual applications on your PC via a MIDI mixer. You can connect any MIDI controller and assign faders to control the volume of various programs.',
+                faq2q: 'What MIDI devices are supported?',
+                faq2a: 'FaderDeck supports any MIDI controllers that can send Control Change messages. This includes popular devices from Behringer, Korg, Novation, and many other manufacturers.',
+                faq3q: 'How to start using FaderDeck?',
+                faq3a: 'Simply download the application, connect your MIDI controller to your PC, select it in FaderDeck settings, and bind mixer channels to the desired applications. Everything is intuitive and simple!',
+                faq4q: 'Is it free?',
+                faq4a: 'Yes! FaderDeck is a completely free and open-source application. You can use it without any restrictions.',
+                faq5q: 'What operating systems are supported?',
+                faq5a: 'Currently, FaderDeck supports Windows 10 and Windows 11. Support for other operating systems is planned for future versions.',
+                faq6q: 'Is registration required?',
+                faq6a: 'No, registration is not required. You can use FaderDeck without creating an account, but in that case you will miss out on some convenient features, such as syncing settings between devices and cloud storage of profiles.',
+                devBy: 'Developed by gLeknya',
+                mobileAll: 'All'
+            }
+        };
+
+        let currentLang = 'ru';
+        const sliders = Array.from(document.querySelectorAll('.slider'));
+        let animationMode = true;      
+        let currentVariant = null;
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+            
+            document.querySelector('.toolbar-nav a[href="#developers"]').textContent = t.developers;
+            document.querySelector('.toolbar-nav a[href="#news"]').textContent = t.news;
+            document.querySelector('.toolbar-nav a[href="#plugins"]').textContent = t.plugins;
+            //document.querySelector('.auth-btn').textContent = t.login;
+            document.querySelector('.hero-title').textContent = t.title;
+            document.querySelector('.hero-description').textContent = t.description;
+            document.querySelector('.download-btn').textContent = t.download;
+            document.querySelector('.faq-title').textContent = t.faqTitle;
+            
+            const faqItems = document.querySelectorAll('.faq-item');
+            faqItems[0].querySelector('h3').textContent = t.faq1q;
+            faqItems[0].querySelector('p').textContent = t.faq1a;
+            faqItems[1].querySelector('h3').textContent = t.faq2q;
+            faqItems[1].querySelector('p').textContent = t.faq2a;
+            faqItems[2].querySelector('h3').textContent = t.faq3q;
+            faqItems[2].querySelector('p').textContent = t.faq3a;
+            faqItems[3].querySelector('h3').textContent = t.faq4q;
+            faqItems[3].querySelector('p').textContent = t.faq4a;
+            faqItems[4].querySelector('h3').textContent = t.faq5q;
+            faqItems[4].querySelector('p').textContent = t.faq5a;
+            faqItems[5].querySelector('h3').textContent = t.faq6q;
+            faqItems[5].querySelector('p').textContent = t.faq6a;
+            
+            document.querySelector('.footer-content span:first-child').textContent = t.devBy;
+            
+            document.querySelector('.mobile-nav a[href="#developers"]').textContent = t.developers;
+            document.querySelector('.mobile-nav a[href="#news"]').textContent = t.news;
+            document.querySelector('.mobile-nav a[href="#plugins"]').textContent = t.plugins;
+        }
+
+        // Показ / скрытие мобильной панели по скроллу
+        let lastScrollY = window.scrollY;
+        const mobileNav = document.querySelector('.mobile-nav');
+
+        window.addEventListener('scroll', () => {
+            // Только на мобильных ширинах
+            if (window.innerWidth > 768 || !mobileNav) return;
+        
+            const currentY = window.scrollY;
+            const delta = currentY - lastScrollY;
+        
+            if (delta > 10) {
+                // Скроллим вниз — прячем панель
+                mobileNav.classList.add('hidden');
+            } else if (delta < -5) {
+                // Скроллим вверх — показываем панель
+                mobileNav.classList.remove('hidden');
+            }
+        
+            lastScrollY = currentY;
+        });
+
+
+        function rand(min, max) {
+          return Math.random() * (max - min) + min;
+        }
+
+        function toggleFaq(element) {
+            const answer = element.nextElementSibling;
+            const arrow = element.querySelector('.faq-arrow');
+            
+            answer.classList.toggle('active');
+            arrow.classList.toggle('active');
+        }
+
+        document.querySelector('.lang-selector').addEventListener('change', function(e) {
+            changeLanguage(e.target.value);
+        });
+
+        document.querySelectorAll('.mobile-nav a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('.mobile-nav a').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        window.addEventListener('load', function() {
+            const introOverlay = document.getElementById('introOverlay');
+            const introVideo = document.getElementById('introVideo');
+            
+            const introShown = sessionStorage.getItem('introShown');
+            
+            if (introShown) {
+                introOverlay.style.display = 'none';
+            } else {
+                setTimeout(function() {
+                    introOverlay.classList.add('fade-out');
+                    setTimeout(function() {
+                        introOverlay.style.display = 'none';
+                        sessionStorage.setItem('introShown', 'true');
+                    }, 800);
+                }, 2000);
+            }
+        });
+
+        function getStartTop() {
+          // тот же брейкпоинт, что и в CSS
+          return window.matchMedia('(max-width: 768px)').matches ? 14 : 5;
+        }
+
+        function variant1() {
+          const baseDelays = [0,0.4,0.8,1.2,1.6,2,2.4,2.8,3.2,3.6,4];
+          const startTop = getStartTop();
+
+          sliders.forEach((el, i) => {
+            // фиксируем стартовую точку под @media
+            el.style.top = startTop + '%';
+        
+            el.style.animation = 'move 3s ease-in-out infinite';
+            el.style.animationDelay = baseDelays[i] + 's';
+          });
+        }
+
+        function variant2() {
+          let delay = 0;
+          const startTop = getStartTop();
+        
+          sliders.forEach(el => {
+            const step = rand(0.2, 1.0);
+            delay += step;
+        
+            el.style.top = startTop + '%';
+        
+            el.style.animation = 'move 3s ease-in-out infinite';
+            el.style.animationDelay = delay.toFixed(2) + 's';
+          });
+        }
+    
+        function variant3() {
+          sliders.forEach(el => {
+            el.style.animation = 'none';
+          });
+      
+          const mq = window.matchMedia('(max-width: 768px)');
+      
+          function getTopRange() {
+            // значения как в keyframes
+            if (mq.matches) {
+              // мобильный: 14–60
+              return { min: 14, max: 60 };
+            } else {
+              // десктоп: 5–70
+              return { min: 5, max: 70 };
+            }
+          }
+      
+          function tick() {
+            if (!animationMode) return;
+        
+            const duration = rand(0.15, 0.5);
+            const delay    = rand(800, 2000);
+            const { min, max } = getTopRange();
+        
+            sliders.forEach(el => {
+              const top = rand(min, max);
+              el.style.transition = `top ${duration.toFixed(2)}s ease-out`;
+              el.style.top = top + '%';
+            });
+        
+            setTimeout(tick, delay);
+          }
+      
+          // если ширина меняется — диапазон обновится автоматически
+          mq.addEventListener('change', () => {
+            // tick сам подхватит новые min/max
+          });
+      
+          tick();
+        }
+    
+        function variant6() {
+          const startTop = getStartTop();
+
+          sliders.forEach(el => {
+            const dur   = rand(1.2, 4.0);
+            const delay = rand(0, 2.0);
+        
+            el.style.top = startTop + '%';
+        
+            el.style.animation = `move ${dur.toFixed(2)}s ease-in-out infinite`;
+            el.style.animationDelay = `${delay.toFixed(2)}s`;
+          });
+        }
+    
+        function startRandomVariant() {
+          const r = Math.random();
+          if (r < 0.25) {
+            currentVariant = 1;
+            variant1();
+          } else if (r < 0.5) {
+            currentVariant = 2;
+            variant2();
+          } else if (r < 0.75) {
+            currentVariant = 3;
+            variant3();
+          } else {
+            currentVariant = 6;
+            variant6();
+          }
+        }
+    
+        startRandomVariant();
+        function goToAuth() {
+            // запоминаем язык
+            localStorage.setItem('faderdeck_lang', currentLang || 'ru');
+            // переходим на страницу авторизации
+            window.location.href = 'auth.html';
+        }
+    </script>
 </body>
+</html>
